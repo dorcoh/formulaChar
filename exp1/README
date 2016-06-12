@@ -1,0 +1,18 @@
+examples:
+
+exp1.py -p instances/ -t 100
+or
+exp1.py -p instances -t 100
+Solve all files in the directory instances (which is in the root directory of the script)
+
+exp1.py -p ../instances -t 100
+Solve all files in the directory instances (in the parent of root directory)
+
+exp1.py -p ../ -t 100 -l chosen.csv
+Solve all files in the chosen.csv list with path (the ../ indicates that the directory for searching the files is the parent directory)
+
+exp1.py -t 100 -l cho.csv
+Solve all files in the cho.csv list with path (-p argument is not needed since we want the current directory to be searched in)
+
+exp1.py -p instances/ -t 100 -r
+Solve all files in instances directory recursively

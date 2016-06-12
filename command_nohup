@@ -1,0 +1,1 @@
+nohup python -u runAll.py > log.out 2> log.err < /dev/null &

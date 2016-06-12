@@ -1,0 +1,5 @@
+formula,entropy,num sols
+/home/sdorco/instances/90_0.cnf,0.1, 200
+/home/sdorco/instances/9000.cnf,0.3, 43242
+/home/sdorco/instances/900.cnf,0.036,4888
+/home/sdorco/instances/00.cnf,0.16,48888
