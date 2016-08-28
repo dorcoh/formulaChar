@@ -747,6 +747,7 @@ class PageFive(tk.Frame):
 			"entropy/output/entropy",
 			"entropy/output/histogram",
 			"entropy/output/output",
+			"entropy/output/sols",
 			"entropy/output"
 		]
 		sftp.chdir('.')

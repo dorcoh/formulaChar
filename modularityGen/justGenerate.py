@@ -13,6 +13,8 @@ def kill_proc(proc, timeout):
 
 def runSolver(filename, timeout_sec):
 	runstring = "./minisat {0}".format(filename)
+
+	t1 = time.time()
 	process = subprocess.Popen(runstring, shell=True, stdout=subprocess.PIPE)
 
 	timeout = {"value": False}
@@ -34,11 +36,12 @@ def runSolver(filename, timeout_sec):
 	#solString = solString.split()[1]
 
 	process.wait()
+	t2 = time.time()
 
 	if solString == 'UNSATISFIABLE':
-		return 0
+		return 0, None
 	elif solString == 'SATISFIABLE':
-		return 1
+		return 1, t2-t1
 
 def runCachet(filename,timeout_sec):
 	""" run Cachet model counter and return num of solutions """
@@ -109,25 +112,23 @@ def main(argv):
 	clauses = 2400
 	communities = 5
 	timeout=8000
-	hoursForEntropy = 4
 	Q = 0.7
-	decayFactor = 0.8
 
 	# handle arguments
 	try:
-		opts, args = getopt.getopt(argv, "hv:c:t:e:d:")
+		opts, args = getopt.getopt(argv, "hv:c:t:m:q:")
 	except getopt.GetoptError:
-		print 'generate.py -v <InitVars> -c <InitClauses> -t <timeoutSec> -e <hoursForEntropy> -d <decayFactor>'
+		print 'generate.py -v <InitVars> -c <InitClauses> -t <timeoutSec>'
 		sys.exit(2)
 
 	for opt, arg in opts:
 		if opt == '-h':
-			print 'generate.py -v <InitVars> -c <InitClauses> -t <timeoutSec> -e <hoursForEntropy> -d <decayFactor>'
-			print '-v <InitVars> Starting number of variables'
-			print '-c <InitClauses> - Starting number of variables of clauses'
+			print 'generate.py -v <InitVars> -c <InitClauses> -t <timeoutSec> -m <communities> -q <Q ratio>'
+			print '-v <InitVars> number of variables'
+			print '-c <InitClauses> - number of variables of clauses'
 			print '-t <timeoutSec> - Timeout in seconds for model counter (and solver)'
-			print '-e <hoursForEntropy> - Maximum time to calculate entropy in hours'
-			print '-d <decayFactor> Factor to decrease vars/clauses ratio when cannot find formulas'
+			print '-m <communities> - num of communities, default=0.5'
+			print '-q <Q ratio> - Q ratio, default=0.7'
 			sys.exit()
 		elif opt in ("-v"):
 			variables = int(arg)
@@ -135,25 +136,16 @@ def main(argv):
 			clauses = int(arg)
 		elif opt in ("-t"):
 			timeout = int(arg)
-		elif opt in ("-e"):
-			hoursForEntropy = float(arg)
-		elif opt in ("-d"):
-			decayFactor = float(arg)
+		elif opt in ("-m"):
+			communities = int(arg)
+		elif opt in ("-q"):
+			Q = float(arg)
 	
-	counterTime = None
-	unfitFormulas = 0
-	counted = False
 	i = 0
 	saved = 0
 	maxi = 100
 	# main loop for generating formulas
 	while (saved<100):
-		# decrease vars/clauses
-		if unfitFormulas == 1:
-			variables = int(decayFactor*variables)
-			clauses = int(decayFactor*clauses)
-			unfitFormulas = 0
-			counted = False
 		# init rand seed
 		random.seed()
 		# generate new filename
@@ -164,34 +156,12 @@ def main(argv):
 		# generate formula
 		runGenerator(variables,clauses,communities,Q,filename,seed)
 		# if satisfiable
-		if runSolver(filename,int(timeout)):
+		sat, timeRun = runSolver(filename,int(timeout))
+		if sat:
 			print "SAT"
-			# count time
-			if not counted:
-				counterTime = runSTS(filename,int(timeout))
-				counted = True
-			# estimated time to calc ent
-			if counterTime != None:
-				estEntropyTime = float(variables)*counterTime/60
-			else:
-				estEntropyTime = 0
-			# if error occured (timeout) or 
-			# it takes more than hoursForEntropy
-			# to calculate entropy
-			if counterTime == None or estEntropyTime > hoursForEntropy:
-				print "Timeout"
-				if counterTime == None:
-					print "Time for model counter: {0}".format(timeout)
-				else:
-					print "Time for entropy: {0}".format(variables*counterTime/60)
-				os.remove(filename)
-				print "Removed: {0}".format(filename)
-				unfitFormulas += 1
-			else:
-				print "Saved: {0}".format(filename)
-				print "Counter time: {0}".format(counterTime)
-				print "Time for entropy: {0}".format(variables*counterTime/60)
-				saved += 1
+			print "Time for process: {0}".format(timeRun)
+			print "Saved: {0}".format(filename)
+			saved += 1
 		# not satisfiable
 		else:
 			print "UNSAT"

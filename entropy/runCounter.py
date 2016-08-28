@@ -37,11 +37,11 @@ def runCachet(timeout_sec):
 		return 0
 	return int(float(solString[3]))
 
-def runSTS(timeout_sec):
+def runSTS(timeout_sec,nsamples,k):
 	""" run sample tree model counter, return num of solutions """
 	lines = list()
-
-	process = subprocess.Popen("./STS dimacsDoc.cnf", shell=True, stdout=subprocess.PIPE)
+	substr = "./STS -nsamples={0} -k={1} dimacsDoc.cnf".format(nsamples,k)
+	process = subprocess.Popen(substr, shell=True, stdout=subprocess.PIPE)
 	
 	timeout = {"value": False}
   	timer = Timer(timeout_sec, kill_proc, [process, timeout])
@@ -54,7 +54,7 @@ def runSTS(timeout_sec):
 	if timeout["value"] == True:
 		return 0
 
-	matching = [s for s in lines if "Different" in s]
+	matching = [s for s in lines if "Estimated Z:" in s]
 	process.wait()
 	if not matching:
 		return 0

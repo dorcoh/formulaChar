@@ -22,10 +22,11 @@ def generateHist(filename, directory, histDict, splitFileName = False):
 	""" input: filename
 		writes histogram as a csv file,
 		name of the file will be input filename """
+	head, tail = os.path.split(filename)
 	# split filename if needed (formula.cnf -> formula.csv)
 	if splitFileName == True:
-		filename = filename.split('.cnf')[0] + '.csv'
-	with open(os.path.join(directory,filename), 'w') as csvfile:
+		outputfilename = tail.split('.cnf')[0] + '.csv'
+	with open(os.path.join(directory,outputfilename), 'w') as csvfile:
 		fieldnames = ['relation', 'sum']
 		writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
 		writer.writeheader()

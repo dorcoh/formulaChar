@@ -8,22 +8,26 @@ from os import listdir
 import csv
 import shutil
 
-def count(literalsDict, cnf, numVars, timeoutDur):
-	for key in literalsDict:
+def count(literalsDict, cnf, numVars, timeoutDur, totalSols):
+	# validation check
+	if numVars < 1:
+		sys.exit("No variables in cnf")
+	# iterate over all the positive (lit>0)
+	for lit in (x for x in literalsDict.keys() if x>0):
+		print "analyzing literals {0} and {1}".format(lit,-lit)
 		temp = list()
-		temp.append(key)
-		# append literal as a temp clause
+		temp.append(lit)
+		# append lit as temp clause
 		cnf.append(temp)
-		# write cnf file again
+		# write cnf file
 		dimacsParser.writeCnf(cnf, numVars, len(cnf))
-		# get and update num of solutions
-		# NEED TO EDIT
+		# solve
 		if numVars <= 100:
-			solutions = runCounter.runCachet(timeoutDur)
+			sols = runCounter.runCachet(timeoutDur)
 		else:
-			solutions = runCounter.runSTS(timeoutDur)
-		literalsDict[key] = solutions
-		# remove temp clause
+			sols = runCounter.runSTS(timeoutDur,nsamples=1,k=5)
+		literalsDict[lit] = sols
+		literalsDict[-lit] = totalSols-sols
 		cnf.pop()
 
 def analyze(literalsDict, numVars):
@@ -45,7 +49,8 @@ def roundToEven(small, big):
 		return float(trunc)/10
 
 def generateOutput(filename, literalsDict):
-	outputFilename = filename.split('.cnf')[0] + '.txt'
+	head, tail = os.path.split(filename)
+	outputFilename = tail.split('.cnf')[0] + '.txt'
 	f = open(os.path.join(pathToOutput + '/output',outputFilename), "w")
 	s = ""
 	for key in sorted(literalsDict.keys(), reverse=True):
@@ -55,28 +60,39 @@ def generateOutput(filename, literalsDict):
 	f.close()
 
 def generateEntropy(filename, entrop):
-	outputFilename = filename.split('.cnf')[0] + '.txt'
+	head, tail = os.path.split(filename)
+	outputFilename = tail.split('.cnf')[0] + '.txt'
 	f = open(os.path.join(pathToOutput + '/entropy',outputFilename), "w")
 	s = "Entropy:" + str(entrop)
 	f.write(s)
 	f.close()
 
+def generateSols(filename,sols):
+	head, tail = os.path.split(filename)
+	outputFilename = tail.split('.cnf')[0] + '.txt'
+	f = open(os.path.join(pathToOutput + '/sols',outputFilename), "w")
+	s = "Solutions:" + str(sols)
+	f.write(s)
+	f.close
+
 def singleFile(filename, pathToDir, timeoutDur):
 	f = open(os.path.join(pathToDir,filename), "r")
 	# compute cnf, num of vars, literals dictionary
 	cnf, numVars = dimacsParser.parser(f)
+
 	literalsDict = dimacsParser.generateDict(numVars)
 	dimacsParser.writeCnf(cnf, numVars, len(cnf))
 	# compute number of solutions
+	print "Calculating total num of sols"
 	if numVars <= 100:
 		numSols = runCounter.runCachet(timeoutDur)
 	else:
-		numSols = runCounter.runSTS(timeoutDur)
+		numSols = runCounter.runSTS(timeoutDur*20,nsamples=5,k=50)
 	if numSols == 0:
-		print "No sultions for this formula"
+		print "No solutions for this formula"
 		return None, None
 	# count backbone variables in dictionary
-	count(literalsDict, cnf, numVars, timeoutDur)
+	count(literalsDict, cnf, numVars, timeoutDur, numSols)
 	analyzeDict = analyze(literalsDict, numVars)
 	histDict = histogram.sumFreqs(analyzeDict)
 	# compute entropy
@@ -86,9 +102,19 @@ def singleFile(filename, pathToDir, timeoutDur):
 	# generate output file
 	generateOutput(filename, literalsDict)
 	generateEntropy(filename, entropy)
+	generateSols(filename, numSols)
 	return entropy, numSols
 
-def allFiles(pathToDir, timeoutDur, csvFilesList, recursive):
+def inCsv(formula):
+	with open(resultsPath, 'rb') as csvfile:
+		reader = csv.reader(csvfile, delimiter=',')
+		for row in reader:
+			if len(row) != 0:
+				if str(row[0]) == str(formula):
+					return True
+	return False
+
+def allFiles(pathToDir, timeoutDur, csvFilesList, recursive, csvWriter, filterExisting):
 	suffix = '.cnf'
 	entropyDict = {}
 	# extract all filenames from csv file
@@ -128,17 +154,34 @@ def allFiles(pathToDir, timeoutDur, csvFilesList, recursive):
 	print "--------------------------------"
 	for f in allfiles:
 		t3 = time.time()
+		if filterExisting:
+			if inCsv(f):
+				print "Filtered " + str(f) 
+				continue
 		if len(os.path.split(f))>1:
 			displayFile = os.path.split(f)[1]
 		else:
 			displayFile = os.path.split(f)
 		print "Currently analyzing: " + str(displayFile) 
 		entropy,numSols = singleFile(f, pathToDir, timeoutDur)
-		entropyDict[f] = entropy,numSols
+		# append entropies to csv after each file
+		if numSols:
+			csvWriter.writerow({'formula': f, 'entropy': entropy, 'num sols': numSols })
+		#entropyDict[f] = entropy,numSols
 		t4 = time.time()
 		print "Analyzing took", t4-t3, "Seconds"
 		print "--------------------------------"
-	sumEntropies(entropyDict, pathToOutput)
+	#sumEntropies(entropyDict, pathToOutput)
+
+def appendEntropiesCsv(formula,entropy,numSols,directory):
+	filename = os.path.join(pathToOutput,'entropies.csv')
+	fileExists = os.path.isfile(filename)
+	with open(filename, 'a') as f:
+		fieldnames = ['formula', 'entropy', 'num sols']
+		writer = csv.DictWriter(f, fieldnames=fieldnames)
+		if not fileExists:
+			writer.writeheader()
+		writer.writerow({'formula': formula, 'entropy': entropy, 'num sols': numSols })
 
 def sumEntropies(entropyDict, directory):
 	with open(os.path.join(pathToOutput,'entropies.csv'), 'w') as f:
@@ -153,6 +196,7 @@ def clearOutput(pathToOutput):
 	output = pathToOutput + '/output'
 	histogram = pathToOutput + '/histogram'
 	entropy = pathToOutput + '/entropy'
+	sols = pathToOutput + '/sols'
 	for theFile in os.listdir(output):
 		filePath = os.path.join(output, theFile)
 		try:
@@ -174,6 +218,13 @@ def clearOutput(pathToOutput):
 				os.unlink(filePath)
 		except Exception, e:
 			print e
+	for theFile in os.listdir(sols):
+		filePath = os.path.join(sols, theFile)
+		try:
+			if os.path.isfile(filePath):
+				os.unlink(filePath)
+		except Exception, e:
+			print e
 
 def extractFilenames(fname):
 	filenames = []
@@ -186,7 +237,7 @@ def extractFilenames(fname):
 
 def main(argv):
 	t1 = time.time()
-	global cnf, numVars, literalsDict, numSols, analyzeDict, histDict, entropy, pathToOutput
+	global cnf, numVars, literalsDict, numSols, analyzeDict, histDict, entropy, pathToOutput, resultsPath
 	
 	# path to directory of benchmarks
 	pathToDir = ''
@@ -196,10 +247,12 @@ def main(argv):
 	csvFilesList = None
 	# optional flag to recursively solve all formulas in the directory
 	recursive = False
+	# filter existing
+	filterExisting = False
 
 	# handle arguments
 	try:
-		opts, args = getopt.getopt(argv, "hrp:t:l:")
+		opts, args = getopt.getopt(argv, "hrfp:t:l:")
 	except getopt.GetoptError:
 		print 'main.py -p <path> -t <timeout>'
 		sys.exit(2)
@@ -212,6 +265,7 @@ def main(argv):
 			print 'Optional paramaeters:'
 			print '-l <csvfilelist> - CSV file that contains formulas list in the path'
 			print '-r (recursive)'
+			print '-f (filter existing entries)'
 			sys.exit()
 		elif opt == '-r':
 			recursive = True
@@ -221,11 +275,24 @@ def main(argv):
 			timeoutDur = int(arg)
 		elif opt in ("-l"):
 			csvFilesList = arg
+		elif opt  == '-f':
+			filterExisting = True
 
 	# directory of the output
 	pathToOutput = os.getcwd() + '/output'
+	resultsfile = 'entropies.csv'
+	resultsPath = os.path.join(pathToOutput, resultsfile)
 
-	allFiles(pathToDir,timeoutDur,csvFilesList,recursive)
+	filename = os.path.join(pathToOutput,'entropies.csv')
+	fileExists = os.path.isfile(filename)
+	with open(filename, 'a',1) as csvfile:
+		fieldnames = ['formula', 'entropy', 'num sols']
+		writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
+		if not fileExists:
+			writer.writeheader()
+		allFiles(pathToDir,timeoutDur,csvFilesList,recursive,writer,filterExisting)
+		csvfile.flush()
+	csvfile.close()
 
 	# delete temp files
 	filePath = os.getcwd() + '/dimacsDoc.cnf'
@@ -235,10 +302,10 @@ def main(argv):
 	except Exception, e:
 		print e
 
-	t2 = time.time()
-	print "Script running took ", t2-t1, " Seconds"
 	#tests()
 
+	t2 = time.time()
+	print "Script running took ", t2-t1, " Seconds"
 
 def tests():
 	print "Number of solutions:" + str(numSols) + "\n"
@@ -258,10 +325,10 @@ def tests():
 	print "Entropy\n"
 	print entropy
 	print "--------------------"
-	if numVars <=100:
+	if numVars <=150:
 		print "Cachet"
 	else:
-		print "AC"
+		print "STS"
 
 if __name__ == '__main__':
 	main(sys.argv[1:])

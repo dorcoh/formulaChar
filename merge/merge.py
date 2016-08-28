@@ -8,7 +8,7 @@ import pandas as pd
     assumes there are results in exp#/output/results.csv
     and releveant entropies (same formulas) in entropy/output/entropies.csv
 """
-def merge(exp):
+def merge(exp,formulaType):
     suffix = '.csv'
     exps = {
         1: 'exp1',
@@ -78,7 +78,8 @@ def merge(exp):
 
     df1 = pd.read_csv(rFile)
     df = pd.read_csv(eFile)
-    result = df1.merge(df, on="formula", how="left")
+    result = df1.merge(df, on="formula", how=str(join))
+    result.insert(1,'formulaType',formulaType)
     result.to_csv(outFile, index=False)
 
 """
@@ -101,12 +102,15 @@ def generateHeader(exp):
 
 
 def main(argv):
+    global join
     try:
         expNum = argv[0]
+        formulaType = argv[1]
+        join = argv[2]
     except:
         print "Enter experiment number (1-5) as an argument"
         sys.exit(2)
-    merge(int(expNum))
+    merge(int(expNum),formulaType)
 
 if __name__ == "__main__":
     main(sys.argv[1:])

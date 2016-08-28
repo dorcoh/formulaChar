@@ -1,0 +1,10 @@
+*.pyc
+*.cnf
+backbone/backbones/
+backbone/instances/
+backbone/mergedResults/
+results/
+entropy/Benchmarks/
+entropy/instances/
+entropy/tests/
+entropy/bu/

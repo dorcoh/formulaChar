@@ -1,0 +1,24 @@
+rbcl_xits_14_SAT.cnf		//vars 2220 clauses 148488 time: 1-60
+rpoc_xits_15_SAT.cnf		//vars 2384 clauses 177941 time: 1-601
+ndhf_xits_21_SAT.cnf		//vars 4466 clauses 542457 time: 5-1800
+E04F19.cnf					//vars 9044 clauses 295685 time: 58-600
+E02F20.cnf					//vars 10420 clauses 395383 time:18-970
+gss-17-s100.cnf				//vars 31318 clauses 94116 time:3-880
+md5_47_3.cnf				//vars 65604 clauses 273522 time: 44-1500
+md5_47_4.cnf				//vars 65604 clauses 273506 time: 19-4800
+md5_48_5.cnf				//vars 66892 clauses 279256 time: 38-2100
+pb_200_03_lb_03.cnf 		//vars 77289 clauses 333640 time: 5-540
+
+itox_vc1033.cnf				//vars 118700 clauses 348058 time: 1-600
+b04_s_unknown_pre.cnf 		//vars 123133 clauses 792142 time: 180-1000
+pb_300_01_lb_00.cnf 		//vars 140866 clauses 627295 time: 7-600
+pb_300_09_lb_07.cnf 		//vars 145943 clauses 654778 time: 9-630
+pb_300_02_lb_06.cnf 		//vars 148565 clauses 663350 time: 37-1600
+pb_300_02_lb_07.cnf 		//vars 149934 clauses 669936 time: 10-630
+itox_vc1130.cnf				//vars 152428 clauses 441729 time: 28-1400
+pb_300_03_lb_13.cnf 		//vars 157913 clauses 708350 time: 15-630
+pb_400_09_lb_05.cnf 		//vars 232908 clauses 1061114 time: 31-691
+pb_400_10_lb_00.cnf 		//vars 228738 clauses 1041009 time: 17-680
+
+
+
