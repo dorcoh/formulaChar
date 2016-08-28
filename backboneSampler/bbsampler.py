@@ -25,14 +25,24 @@ def run(fName,executable,path,timeoutSec):
 	# parse output and save into dict
 	sampId = 1
 	conflicts,cpuTime = None,None
+	sat = None
 	for line in proc.stdout:
 		if line:
 			if 'conflicts' in line:
 				conflicts = line.split(':')[1].split()[0]
 			if 'CPU' in line:
 				cpuTime =  line.split(':')[1].split()[0]
+			if 'SATISFIABLE' in line:
+				if line.split()[0] == 'SATISFIABLE':
+					sat = True
+				elif line.split()[0] == 'UNSATISFIABLE':
+					sat = False
 			if line[0] != '#':
 				continue
+			# total decisions
+			if line[0] == '#' and line[1] == '#':
+				out = line[2:].split(',')
+				totalDec = int(out[0].split(':')[1])
 			out = line[1:].split(',')
 			decisions = int(out[0].split(':')[1])
 			backbone = float(out[1].split(':')[1])
@@ -45,7 +55,7 @@ def run(fName,executable,path,timeoutSec):
 	if timeout["value"] == True:
 		return 'TIMEOUT','TIMEOUT'
 
-	return samples
+	return samples,totalDec,sat
 
 def extractFilenames(fname):
 	filenames = []
@@ -90,15 +100,17 @@ def processLoop(pathToDir,timeout,csvFilesList,csvWriter):
 		else:
 			displayFile = os.path.split(f)
 		print "Currently solving: " + str(displayFile)
-		sample = run(f,'minisat',pathToDir,timeout)
+		sample,totalDec,sat = run(f,'minisat',pathToDir,timeout)
 		for row in sample:
 			csvWriter.writerow({
 					'formula': row[0],
 					'sampId': row[1],
 					'decisions': row[2],
+					'decisionsNormalized': float(row[2])/totalDec, 
 					'backbone': row[3],
 					'conflicts': row[4],
-					'cpu': row[5]	
+					'cpu': row[5],
+					'sat': sat	
 				})
 		t2 = time.time()
 		print "Running took: ", t2-t1, "Seconds"
@@ -135,7 +147,8 @@ def main(argv):
 	fileExists = os.path.isfile(resultPath)
 	with open(resultPath,'a',1) as csvfile:
 		header = ['formula','sampId','decisions',
-				  'backbone', 'cpu','conflicts']
+			  	  'decisionsNormalized','backbone', 'cpu',
+			  	  'conflicts','sat']
 		csvWriter = csv.DictWriter(csvfile,
 								   fieldnames=header)
 		if not fileExists:
