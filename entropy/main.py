@@ -82,7 +82,7 @@ def singleFile(filename, pathToDir, timeoutDur):
 	# compute cnf, num of vars, literals dictionary
 	cnf, numVars = dimacsParser.parser(f)
 	#literalsDict = dimacsParser.generateDict(numVars)
-	literalsDict = dimacsParser.genRandomDict(numVars,1)
+	literalsDict = dimacsParser.genRandomDict(numVars,0.6)
 	dimacsParser.writeCnf(cnf, numVars, len(cnf))
 	# compute number of solutions
 	print "Calculating total num of sols"
@@ -95,13 +95,10 @@ def singleFile(filename, pathToDir, timeoutDur):
 		return None, None
 	# count backbone variables in dictionary
 	count(literalsDict, cnf, numVars, timeoutDur, numSols)
-	#print literalsDict
 	analyzeDict = analyze(literalsDict, numVars)
-	#print analyzeDict
 	histDict = histogram.sumFreqs(analyzeDict)
-	#print histDict
 	# compute entropy
-	entropy = histogram.calcEntropy(histDict, numVars)
+	entropy = histogram.calcEntropy(histDict, len(literalsDict)/2)
 	# generate histogram
 	histogram.generateHist(filename,pathToOutput + '/histogram', histDict, True)
 	# generate output file
