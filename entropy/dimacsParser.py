@@ -1,6 +1,7 @@
 """
 	module for handling CNF files
 """
+import random
 
 def parser(cnfFile):
 	""" in: cnf,
@@ -23,7 +24,6 @@ def parser(cnfFile):
 
 	assert len(cnf[-1]) == 0
 	cnf.pop()
-
 	return cnf, maxvar
 
 def generateDict(maxvar):
@@ -34,6 +34,18 @@ def generateDict(maxvar):
 		tupleList.append((i,0))
 		tupleList.append((-i,0))
 	return dict([(x[0], x[1]) for x in tupleList])
+
+def genRandomDict(maxvar,size):
+	""" in: maxvar
+		out: dict, a subset with Size=size of random literals """
+	tupleList = list()
+	allLits = [i for i in range(1,maxvar+1)]
+
+	sample = random.sample(allLits,int(size*len(allLits)))
+	for i in sample:
+		tupleList.append((i,0))
+		tupleList.append((-i,0))
+	return dict([(x[0],x[1]) for x in tupleList])
 
 def writeCnf(cnfList, numLits, numClauses):
 	""" in: cnfList, numLits, clauses

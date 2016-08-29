@@ -1,5 +1,6 @@
 *.pyc
 *.cnf
+tunnel.sh
 backbone/backbones/
 backbone/instances/
 backbone/mergedResults/
@@ -8,3 +9,8 @@ entropy/Benchmarks/
 entropy/instances/
 entropy/tests/
 entropy/bu/
+entropy/output/sols/
+entropy/output/output/
+entropy/output/histogram/
+entropy/output/entropy
+backboneSampler/output

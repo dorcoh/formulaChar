@@ -53,7 +53,7 @@ def run(fName,executable,path,timeoutSec):
 
 	timer.cancel()
 	if timeout["value"] == True:
-		return 'TIMEOUT','TIMEOUT'
+		return 'TIMEOUT'
 
 	return samples,totalDec,sat
 
@@ -66,7 +66,16 @@ def extractFilenames(fname):
 
 	return filenames
 
-def processLoop(pathToDir,timeout,csvFilesList,csvWriter):
+def inCsv(formula):
+	with open(resultPath, 'rb') as csvfile:
+		reader = csv.reader(csvfile, delimiter=',')
+		for row in reader:
+			if len(row) != 0:
+				if str(row[0]) == str(formula):
+					return True
+	return False
+
+def processLoop(pathToDir,timeout,csvFilesList,csvWriter,filterExisting):
 	suffix = '.cnf'
 	
 	# extract filenames from csv file
@@ -93,25 +102,47 @@ def processLoop(pathToDir,timeout,csvFilesList,csvWriter):
 	if len(allFiles) == 0:
 		sys.exit("No CNF files in the directory")
 
+	# loop through all files
 	for f in allFiles:
+		if filterExisting:
+			if inCsv(f):
+				print "Filtered" + str(f)
+				continue
 		t1 = time.time()
 		if len(os.path.split(f))>1:
 			displayFile = os.path.split(f)[1]
 		else:
 			displayFile = os.path.split(f)
 		print "Currently solving: " + str(displayFile)
-		sample,totalDec,sat = run(f,'minisat',pathToDir,timeout)
-		for row in sample:
+
+		ret = run(f,'minisat',pathToDir,timeout)
+		t = 'TIMEOUT'
+		if ret != t:
+			# no timeout
+			samples,totalDec,sat = ret	
+			for row in samples:
+				csvWriter.writerow({
+						'formula': f,
+						'sampId': row[1],
+						'decisions': row[2],
+						'decisionsNormalized': float(row[2])/totalDec, 
+						'backbone': row[3],
+						'conflicts': row[4],
+						'cpu': row[5],
+						'sat': sat
+					})
+		else:
+			# timeout, fill fields with 'TIMEOUT'
 			csvWriter.writerow({
-					'formula': row[0],
-					'sampId': row[1],
-					'decisions': row[2],
-					'decisionsNormalized': float(row[2])/totalDec, 
-					'backbone': row[3],
-					'conflicts': row[4],
-					'cpu': row[5],
-					'sat': sat	
-				})
+					'formula': f,
+					'sampId': t,
+					'decisions': t,
+					'decisionsNormalized': t, 
+					'backbone': t,
+					'conflicts': t,
+					'cpu': t,
+					'sat': t
+				})		
 		t2 = time.time()
 		print "Running took: ", t2-t1, "Seconds"
 		print "--------------------------------"
@@ -120,9 +151,10 @@ def main(argv):
 	pathToDir = ''
 	timeout = 0
 	csvFilesList = None
+	filterExisting = False
 
 	try:
-		opts, args = getopt.getopt(argv,"hp:t:l:")
+		opts, args = getopt.getopt(argv,"hfp:t:l:")
 	except:
 		print 'bbsampler.py -p <path> -t <timeout>'
 		sys.exit(2)
@@ -132,6 +164,7 @@ def main(argv):
 			print 'bbsampler.py -p <path> -t <timeout>'
 			print 'Optional paramaeters:'
 			print '-l <csvfilelist> - CSV file that contains formulas list in the path'
+			print '-f - filter existing files on csv'
 			sys.exit(2)
 		elif opt == '-p':
 			pathToDir = arg
@@ -139,11 +172,15 @@ def main(argv):
 			timeout = int(arg)
 		elif opt == '-l':
 			csvFilesList = arg
+		elif opt == '-f':
+			filterExisting = True
 
 	pathOutput = os.getcwd() + '/output'
 	resultsFile = 'results.csv'
 
+	global resultPath
 	resultPath = os.path.join(pathOutput, resultsFile)
+
 	fileExists = os.path.isfile(resultPath)
 	with open(resultPath,'a',1) as csvfile:
 		header = ['formula','sampId','decisions',
@@ -154,7 +191,7 @@ def main(argv):
 		if not fileExists:
 			csvWriter.writeheader()
 		processLoop(pathToDir,timeout,csvFilesList,
-					csvWriter)
+					csvWriter,filterExisting)
 		csvfile.flush()
 
 	csvfile.close()

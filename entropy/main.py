@@ -14,7 +14,7 @@ def count(literalsDict, cnf, numVars, timeoutDur, totalSols):
 		sys.exit("No variables in cnf")
 	# iterate over all the positive (lit>0)
 	for lit in (x for x in literalsDict.keys() if x>0):
-		print "analyzing literals {0} and {1}".format(lit,-lit)
+		#print "analyzing literals {0} and {1}".format(lit,-lit)
 		temp = list()
 		temp.append(lit)
 		# append lit as temp clause
@@ -33,7 +33,9 @@ def count(literalsDict, cnf, numVars, timeoutDur, totalSols):
 def analyze(literalsDict, numVars):
 	# update for every variable the relation (small/big solutions)
 	tupleList = list()
-	for i in xrange(1, numVars+1):
+	keys = literalsDict.keys()
+	posKeys = [i for i in keys if i>0]
+	for i in posKeys:
 		small = min(literalsDict[i], literalsDict[-i])
 		big = max(literalsDict[i], literalsDict[-i])
 		tupleList.append((i, roundToEven(small,big)))
@@ -79,8 +81,8 @@ def singleFile(filename, pathToDir, timeoutDur):
 	f = open(os.path.join(pathToDir,filename), "r")
 	# compute cnf, num of vars, literals dictionary
 	cnf, numVars = dimacsParser.parser(f)
-
-	literalsDict = dimacsParser.generateDict(numVars)
+	#literalsDict = dimacsParser.generateDict(numVars)
+	literalsDict = dimacsParser.genRandomDict(numVars,1)
 	dimacsParser.writeCnf(cnf, numVars, len(cnf))
 	# compute number of solutions
 	print "Calculating total num of sols"
@@ -93,8 +95,11 @@ def singleFile(filename, pathToDir, timeoutDur):
 		return None, None
 	# count backbone variables in dictionary
 	count(literalsDict, cnf, numVars, timeoutDur, numSols)
+	#print literalsDict
 	analyzeDict = analyze(literalsDict, numVars)
+	#print analyzeDict
 	histDict = histogram.sumFreqs(analyzeDict)
+	#print histDict
 	# compute entropy
 	entropy = histogram.calcEntropy(histDict, numVars)
 	# generate histogram
