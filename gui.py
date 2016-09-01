@@ -17,8 +17,8 @@ from os import listdir
 TITLE_FONT = ("Helvetica", 18, "bold")
 H2 = ("Helvetica", 12, "bold")
 PORT = 22000
-USER = 'sdorco'
-PASSWORD = '123qwe!@#'
+USER = ''
+PASSWORD = ''
 
 def sshExecute(host, user, password, runstring):
 	hostname = host
