@@ -1,4 +1,5 @@
 # formulaChar
+<<<<<<< HEAD
 ### CNF formula characterizer
 An automate infrastructure for producing SAT solvers experiments and record their data
 
@@ -48,3 +49,6 @@ https://github.com/dorcoh/COMiniSatPS-BackboneModified
 
 Tool implemented to aid this research work, for approximating a CNF formula entropy property by using <i>Hashing and optimization</i> technique (shrink search space and find most likely sample with an optimization oracle). More details in it's repository:
 https://github.com/dorcoh/hashing-optimization
+=======
+A follow up on: Between SAT and UNSAT: The Fundamental Difference in CDCL SAT (2015)
+>>>>>>> e27d02161a7cc341d98c6eb75f8083907ee45ef9
